@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Group Join App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #f3f4f6;
+      color: #111827;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+      padding: 2rem;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 0.75rem;
+      margin: 0.5rem 0;
+      border-radius: 0.5rem;
+      border: 1px solid #d1d5db;
+      font-size: 1rem;
+    }
+
+    button {
+      background-color: #4f46e5;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+
+    button:hover {
+      background-color: #4338ca;
+    }
+
+    .group-list {
+      margin-top: 1rem;
+    }
+
+    .user-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .fake-admin {
+      margin-top: 1rem;
+      background-color: #fef3c7;
+      padding: 1rem;
+      border-radius: 0.5rem;
+    }
+
+    @media (max-width: 500px) {
+      .container {
+        padding: 1rem;
+      }
+
+      input, button {
+        font-size: 1rem;
+        padding: 0.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Join or Create a Group</h1>
+  <div class="container">
+    <input type="text" id="groupName" placeholder="Enter group name" />
+    <input type="text" id="userName" placeholder="Your name" />
+    <button onclick="createGroup()">Create Group</button>
+    <button onclick="joinGroup()">Join Group</button>
+
+    <div class="fake-admin">
+      <input type="password" id="adminCode" placeholder="Admin code" />
+      <input type="number" id="fakeNumber" placeholder="Set fake user count" />
+      <button onclick="setFakeCount()">Set Fake Count</button>
+    </div>
+
+    <div class="group-list">
+      <h3 id="currentGroup"></h3>
+      <p><strong>User Count:</strong> <span id="userCount">0</span></p>
+      <ul id="userList" class="user-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const realUsers = {};
+    const fakeCounts = {};
+    let currentGroup = '';
+
+    function createGroup() {
+      const group = document.getElementById('groupName').value.trim();
+      const user = document.getElementById('userName').value.trim();
+      if (!group || !user) return alert("Please enter group and name.");
+
+      if (!realUsers[group]) realUsers[group] = [];
+      if (!realUsers[group].includes(user)) realUsers[group].push(user);
+      currentGroup = group;
+      updateGroupDisplay();
+    }
+
+    function joinGroup() {
+      const group = document.getElementById('groupName').value.trim();
+      const user = document.getElementById('userName').value.trim();
+      if (!group || !user) return alert("Please enter group and name.");
+
+      if (!realUsers[group]) return alert("Group doesn't exist. Please create it first.");
+      if (!realUsers[group].includes(user)) realUsers[group].push(user);
+      currentGroup = group;
+      updateGroupDisplay();
+    }
+
+    function setFakeCount() {
+      const code = document.getElementById('adminCode').value.trim();
+      const fake = parseInt(document.getElementById('fakeNumber').value.trim());
+
+      if (code !== "admin123") {
+        alert("Invalid admin code.");
+        return;
+      }
+
+      if (isNaN(fake) || fake < 0) return alert("Please enter a valid number.");
+
+      if (currentGroup) {
+        fakeCounts[currentGroup] = fake;
+        updateGroupDisplay();
+      } else {
+        alert("Join or create a group first.");
+      }
+    }
+
+    function updateGroupDisplay() {
+      document.getElementById("currentGroup").textContent = `Group: ${currentGroup}`;
+      const users = realUsers[currentGroup] || [];
+      document.getElementById("userCount").textContent = 
+        fakeCounts[currentGroup] !== undefined ? fakeCounts[currentGroup] : users.length;
+
+      const userList = document.getElementById("userList");
+      userList.innerHTML = '';
+      users.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        userList.appendChild(li);
+      });
+    }
+  </script>
+
+</body>
+</html>
