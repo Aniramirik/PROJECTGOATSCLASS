@@ -3,169 +3,110 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Group Join App</title>
+  <title>Join a Group</title>
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
-
     body {
-      margin: 0;
-      padding: 0;
-      background: #f3f4f6;
-      color: #111827;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 2rem;
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
     }
-
-    h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
+    .admin-section {
+      display: none;
     }
-
-    .container {
-      width: 100%;
-      max-width: 400px;
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 10px 15px rgba(0,0,0,0.1);
-      padding: 2rem;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 0.75rem;
-      margin: 0.5rem 0;
-      border-radius: 0.5rem;
-      border: 1px solid #d1d5db;
-      font-size: 1rem;
-    }
-
-    button {
-      background-color: #4f46e5;
-      color: white;
-      cursor: pointer;
-      border: none;
-    }
-
-    button:hover {
-      background-color: #4338ca;
-    }
-
-    .group-list {
-      margin-top: 1rem;
-    }
-
-    .user-list {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    .fake-admin {
-      margin-top: 1rem;
-      background-color: #fef3c7;
-      padding: 1rem;
-      border-radius: 0.5rem;
-    }
-
-    @media (max-width: 500px) {
-      .container {
-        padding: 1rem;
-      }
-
-      input, button {
-        font-size: 1rem;
-        padding: 0.6rem;
-      }
+    .member-list {
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
+  <h2>Join a Group</h2>
+  <form id="joinForm">
+    <input type="text" id="nameInput" placeholder="Enter your name" required />
+    <br /><br />
+    <input type="password" id="adminCode" placeholder="Admin code (optional)" />
+    <br /><br />
+    <button type="submit">Join</button>
+  </form>
 
-  <h1>Join or Create a Group</h1>
-  <div class="container">
-    <input type="text" id="groupName" placeholder="Enter group name" />
-    <input type="text" id="userName" placeholder="Your name" />
-    <button onclick="createGroup()">Create Group</button>
-    <button onclick="joinGroup()">Join Group</button>
-
-    <div class="fake-admin">
-      <input type="password" id="adminCode" placeholder="Admin code" />
-      <input type="number" id="fakeNumber" placeholder="Set fake user count" />
-      <button onclick="setFakeCount()">Set Fake Count</button>
-    </div>
-
-    <div class="group-list">
-      <h3 id="currentGroup"></h3>
-      <p><strong>User Count:</strong> <span id="userCount">0</span></p>
-      <ul id="userList" class="user-list"></ul>
-    </div>
+  <div class="admin-section" id="adminTools">
+    <h3>Admin Tools</h3>
+    <label>Fake number of users to display:</label><br />
+    <input type="number" id="fakeCount" value="10" />
+    <button type="button" onclick="updateFakeCount()">Update Fake Count</button>
   </div>
 
+  <div class="member-list">
+    <h3>Group Info</h3>
+    <p><strong>Visible User Count:</strong> <span id="visibleCount">0</span></p>
+    <ul id="realList"></ul>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
+
   <script>
-    const realUsers = {};
-    const fakeCounts = {};
-    let currentGroup = '';
+    // Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyAe0j-iB4gapzSq1zy2a6j4kwaET8JXZ_8",
+      authDomain: "nopeeking-e272a.firebaseapp.com",
+      databaseURL: "https://nopeeking-e272a-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "nopeeking-e272a",
+      storageBucket: "nopeeking-e272a.appspot.com",
+      messagingSenderId: "193204663242",
+      appId: "1:193204663242:web:46523ab13715b022b09533",
+      measurementId: "G-BM1EF4526F"
+    };
 
-    function createGroup() {
-      const group = document.getElementById('groupName').value.trim();
-      const user = document.getElementById('userName').value.trim();
-      if (!group || !user) return alert("Please enter group and name.");
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-      if (!realUsers[group]) realUsers[group] = [];
-      if (!realUsers[group].includes(user)) realUsers[group].push(user);
-      currentGroup = group;
-      updateGroupDisplay();
-    }
+    const form = document.getElementById("joinForm");
+    const nameInput = document.getElementById("nameInput");
+    const adminCode = document.getElementById("adminCode");
+    const adminTools = document.getElementById("adminTools");
+    const realList = document.getElementById("realList");
+    const visibleCount = document.getElementById("visibleCount");
+    let fakeVisibleCount = 0;
 
-    function joinGroup() {
-      const group = document.getElementById('groupName').value.trim();
-      const user = document.getElementById('userName').value.trim();
-      if (!group || !user) return alert("Please enter group and name.");
-
-      if (!realUsers[group]) return alert("Group doesn't exist. Please create it first.");
-      if (!realUsers[group].includes(user)) realUsers[group].push(user);
-      currentGroup = group;
-      updateGroupDisplay();
-    }
-
-    function setFakeCount() {
-      const code = document.getElementById('adminCode').value.trim();
-      const fake = parseInt(document.getElementById('fakeNumber').value.trim());
-
-      if (code !== "admin123") {
-        alert("Invalid admin code.");
-        return;
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const isAdmin = adminCode.value === "letmeinadmin";
+      if (name) {
+        // Save to Firebase
+        db.ref("members").push(name);
+        nameInput.value = "";
+        adminCode.value = "";
+        if (isAdmin) {
+          adminTools.style.display = "block";
+          updateFakeCount();
+        } else {
+          adminTools.style.display = "none";
+        }
       }
+    });
 
-      if (isNaN(fake) || fake < 0) return alert("Please enter a valid number.");
+    function updateFakeCount() {
+      const countInput = document.getElementById("fakeCount");
+      fakeVisibleCount = parseInt(countInput.value);
+      visibleCount.textContent = fakeVisibleCount;
+    }
 
-      if (currentGroup) {
-        fakeCounts[currentGroup] = fake;
-        updateGroupDisplay();
-      } else {
-        alert("Join or create a group first.");
+    // Realtime listener to update the list
+    db.ref("members").on("value", snapshot => {
+      const members = snapshot.val();
+      realList.innerHTML = "";
+      const count = members ? Object.values(members).length : 0;
+      visibleCount.textContent = fakeVisibleCount || count;
+      for (let key in members) {
+        const li = document.createElement("li");
+        li.textContent = members[key];
+        realList.appendChild(li);
       }
-    }
-
-    function updateGroupDisplay() {
-      document.getElementById("currentGroup").textContent = `Group: ${currentGroup}`;
-      const users = realUsers[currentGroup] || [];
-      document.getElementById("userCount").textContent = 
-        fakeCounts[currentGroup] !== undefined ? fakeCounts[currentGroup] : users.length;
-
-      const userList = document.getElementById("userList");
-      userList.innerHTML = '';
-      users.forEach(name => {
-        const li = document.createElement('li');
-        li.textContent = name;
-        userList.appendChild(li);
-      });
-    }
+    });
   </script>
-
 </body>
 </html>
+
