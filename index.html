@@ -2,27 +2,23 @@
 <html>
 <head>
   <title>Vote for Your Favorite!</title>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin: 50px;
-      background: #f0f0f0;
-    }
-    h1 {
-      color: #333;
+      background-color: #f0f0f0;
     }
     .btn {
       padding: 10px 20px;
       margin: 10px;
-      font-size: 18px;
-      cursor: pointer;
+      font-size: 16px;
       background-color: #4caf50;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
+      cursor: pointer;
     }
     .btn:hover {
       background-color: #45a049;
@@ -35,33 +31,31 @@
 <body>
 
   <h1>Vote for Your Favorite!</h1>
-
   <div id="buttons"></div>
-
   <div class="results" id="results"></div>
 
   <script>
-    // 🔧 Replace with your Firebase config
-    const firebaseConfig = {
-  apiKey: "AIzaSyAe0j-iB4gapzSq1zy2a6j4kwaET8JXZ_8",
-  authDomain: "nopeeking-e272a.firebaseapp.com",
-  databaseURL: "https://nopeeking-e272a-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "nopeeking-e272a",
-  storageBucket: "nopeeking-e272a.firebasestorage.app",
-  messagingSenderId: "193204663242",
-  appId: "1:193204663242:web:46523ab13715b022b09533",
-  measurementId: "G-BM1EF4526F"
-};
+    // ✅ Firebase config
+    var firebaseConfig = {
+      apiKey: "AIzaSyAe0j-iB4gapzSq1zy2a6j4kwaET8JXZ_8",
+      authDomain: "nopeeking-e272a.firebaseapp.com",
+      databaseURL: "https://nopeeking-e272a-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "nopeeking-e272a",
+      storageBucket: "nopeeking-e272a.firebasestorage.app",
+      messagingSenderId: "193204663242",
+      appId: "1:193204663242:web:46523ab13715b022b09533",
+      measurementId: "G-BM1EF4526F"
+    };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    // ✅ Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    var db = firebase.firestore();
 
     const names = ["Anir", "Reuben", "Ramy", "Iyed", "Leo"];
     const buttonsDiv = document.getElementById("buttons");
     const resultsDiv = document.getElementById("results");
 
-    // Create vote buttons
+    // Create voting buttons
     names.forEach(name => {
       const btn = document.createElement("button");
       btn.textContent = `Vote for ${name}`;
@@ -71,14 +65,12 @@
     });
 
     // Vote function
-    async function voteFor(name) {
+    function voteFor(name) {
       const ref = db.collection("votes").doc(name);
-      await ref.set({
-        count: firebase.firestore.FieldValue.increment(1)
-      }, { merge: true });
+      ref.set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true });
     }
 
-    // Live vote count
+    // Live vote count display
     function listenToVotes() {
       names.forEach(name => {
         db.collection("votes").doc(name)
@@ -87,7 +79,7 @@
             document.getElementById("vote-" + name)?.remove();
             const p = document.createElement("p");
             p.id = "vote-" + name;
-            p.textContent = `${name}: ${data?.count || 0} votes`;
+            p.textContent = `${name}: ${data?.count || 0} vote(s)`;
             resultsDiv.appendChild(p);
           });
       });
@@ -97,4 +89,3 @@
   </script>
 </body>
 </html>
-
