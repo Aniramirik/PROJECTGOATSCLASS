@@ -1,91 +1,142 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Vote for Your Favorite!</title>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <meta charset="UTF-8">
+  <title>Votie Firebase</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f0f0f0;
+      padding: 2rem;
+      background: #f4f4f4;
     }
-    .btn {
-      padding: 10px 20px;
-      margin: 10px;
-      font-size: 16px;
-      background-color: #4caf50;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    h1 {
+      color: #333;
     }
-    .btn:hover {
-      background-color: #45a049;
+    .vote-card {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .results {
-      margin-top: 30px;
+    button {
+      margin: 0.5rem;
     }
   </style>
 </head>
 <body>
+  <h1>🗳️ Votie</h1>
 
-  <h1>Vote for Your Favorite!</h1>
-  <div id="buttons"></div>
-  <div class="results" id="results"></div>
+  <form id="create-form">
+    <input type="text" id="title" placeholder="Campaign Title" required />
+    <input type="text" id="opt1" placeholder="Option 1" required />
+    <input type="text" id="opt2" placeholder="Option 2" required />
+    <button type="submit">Create Campaign</button>
+  </form>
 
-  <script>
-    // ✅ Firebase config
-    var firebaseConfig = {
-      apiKey: "AIzaSyAe0j-iB4gapzSq1zy2a6j4kwaET8JXZ_8",
-      authDomain: "nopeeking-e272a.firebaseapp.com",
-      databaseURL: "https://nopeeking-e272a-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "nopeeking-e272a",
-      storageBucket: "nopeeking-e272a.firebasestorage.app",
-      messagingSenderId: "193204663242",
-      appId: "1:193204663242:web:46523ab13715b022b09533",
-      measurementId: "G-BM1EF4526F"
-    };
+  <h2>Live Campaigns</h2>
+  <div id="campaigns"></div>
 
-    // ✅ Initialize Firebase
-    firebase.initializeApp(firebaseConfig);
-    var db = firebase.firestore();
+  <!-- Firebase App -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      doc,
+      getDoc,
+      updateDoc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
-    const names = ["Anir", "Reuben", "Ramy", "Iyed", "Leo"];
-    const buttonsDiv = document.getElementById("buttons");
-    const resultsDiv = document.getElementById("results");
+const firebaseConfig = {
+  apiKey: "AIzaSyAe0j-iB4gapzSq1zy2a6j4kwaET8JXZ_8",
+  authDomain: "nopeeking-e272a.firebaseapp.com",
+  databaseURL: "https://nopeeking-e272a-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "nopeeking-e272a",
+  storageBucket: "nopeeking-e272a.firebasestorage.app",
+  messagingSenderId: "193204663242",
+  appId: "1:193204663242:web:46523ab13715b022b09533",
+  measurementId: "G-BM1EF4526F"
+};
 
-    // Create voting buttons
-    names.forEach(name => {
-      const btn = document.createElement("button");
-      btn.textContent = `Vote for ${name}`;
-      btn.className = "btn";
-      btn.onclick = () => voteFor(name);
-      buttonsDiv.appendChild(btn);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const campaignsCol = collection(db, "campaigns");
+
+    const form = document.getElementById("create-form");
+    const campaignsDiv = document.getElementById("campaigns");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = form.title.value;
+      const opt1 = form.opt1.value;
+      const opt2 = form.opt2.value;
+      await addDoc(campaignsCol, {
+        title,
+        options: {
+          [opt1]: 0,
+          [opt2]: 0
+        },
+        createdAt: Date.now()
+      });
+      form.reset();
     });
 
-    // Vote function
-    function voteFor(name) {
-      const ref = db.collection("votes").doc(name);
-      ref.set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+    function renderCampaign(id, data) {
+      const div = document.createElement("div");
+      div.className = "vote-card";
+
+      const voted = JSON.parse(localStorage.getItem("voted") || "{}");
+
+      let html = `<h3>${data.title}</h3>`;
+      const total = Object.values(data.options).reduce((a, b) => a + b, 0);
+
+      for (const [option, count] of Object.entries(data.options)) {
+        const percent = total ? ((count / total) * 100).toFixed(1) : 0;
+        html += `
+          <div>
+            <button ${voted[id] ? "disabled" : ""} data-id="${id}" data-opt="${option}">
+              ${option}
+            </button>
+            <span>${count} votes (${percent}%)</span>
+          </div>
+        `;
+      }
+
+      div.innerHTML = html;
+      campaignsDiv.appendChild(div);
     }
 
-    // Live vote count display
-    function listenToVotes() {
-      names.forEach(name => {
-        db.collection("votes").doc(name)
-          .onSnapshot(doc => {
-            const data = doc.data();
-            document.getElementById("vote-" + name)?.remove();
-            const p = document.createElement("p");
-            p.id = "vote-" + name;
-            p.textContent = `${name}: ${data?.count || 0} vote(s)`;
-            resultsDiv.appendChild(p);
-          });
+    // Listen to real-time updates
+    onSnapshot(campaignsCol, (snapshot) => {
+      campaignsDiv.innerHTML = "";
+      snapshot.docs.forEach(docSnap => {
+        renderCampaign(docSnap.id, docSnap.data());
       });
-    }
+    });
 
-    listenToVotes();
+    // Handle vote click
+    campaignsDiv.addEventListener("click", async (e) => {
+      if (e.target.tagName === "BUTTON") {
+        const id = e.target.dataset.id;
+        const opt = e.target.dataset.opt;
+        const voted = JSON.parse(localStorage.getItem("voted") || "{}");
+
+        if (voted[id]) return;
+
+        const docRef = doc(db, "campaigns", id);
+        const snap = await getDoc(docRef);
+        const data = snap.data();
+
+        data.options[opt] += 1;
+        await updateDoc(docRef, { options: data.options });
+
+        voted[id] = true;
+        localStorage.setItem("voted", JSON.stringify(voted));
+      }
+    });
   </script>
 </body>
 </html>
